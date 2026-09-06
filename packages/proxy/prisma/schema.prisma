@@ -1,0 +1,53 @@
+// AgentGate — Prisma schema (PostgreSQL — production / docker-compose)
+// Local dev without Postgres: use prisma/schema.sqlite.prisma instead.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Policy {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  toolPattern String // e.g. "delete_*", "transfer_funds", "*" for all
+  condition   Json // e.g. { "field": "amount", "operator": ">", "value": 100 } or { "always": true }
+  action      String // "ALLOW" | "BLOCK" | "REQUIRE_APPROVAL"
+  enabled     Boolean  @default(true)
+  priority    Int      @default(0) // lower number = evaluated first
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ToolCallRequest {
+  id              String    @id @default(cuid())
+  agentName       String // e.g. "demo-agent", "claude-live-agent"
+  toolName        String // e.g. "delete_user_record"
+  toolInput       Json // arbitrary params of the call
+  status          String // "PENDING" | "APPROVED" | "REJECTED" | "AUTO_ALLOWED" | "AUTO_BLOCKED"
+  matchedPolicyId String?
+  decidedBy       String? // "system" | "admin" | admin user id
+  reasoning       String? // agent's stated reasoning for the call, if provided
+  result          Json? // what happened after execution (mock DB response)
+  createdAt       DateTime @default(now())
+  decidedAt       DateTime?
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  requestId String
+  event     String // "REQUEST_RECEIVED" | "POLICY_EVALUATED" | "APPROVED" | "REJECTED" | "EXECUTED" | "BLOCKED"
+  detail    Json
+  createdAt DateTime @default(now())
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}

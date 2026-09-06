@@ -1,0 +1,21 @@
+{
+  "name": "agentgate",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AgentGate — A firewall for AI agents. MCP security/governance middleware with a policy engine and human-in-the-loop dashboard.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n proxy,dashboard -c blue,green \"npm run dev -w @agentgate/proxy\" \"npm run dev -w @agentgate/dashboard\"",
+    "build": "npm run build -w @agentgate/proxy && npm run build -w @agentgate/dashboard",
+    "typecheck": "npm run typecheck -w @agentgate/proxy && npm run typecheck -w @agentgate/dashboard",
+    "seed": "npm run seed -w @agentgate/proxy"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

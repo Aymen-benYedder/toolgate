@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: agentgate-postgres
+    environment:
+      POSTGRES_USER: agentgate
+      POSTGRES_PASSWORD: agentgate
+      POSTGRES_DB: agentgate
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentgate -d agentgate"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  proxy:
+    build:
+      context: .
+      dockerfile: packages/proxy/Dockerfile
+    container_name: agentgate-proxy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://agentgate:agentgate@postgres:5432/agentgate
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Entrypoint runs prisma migrate deploy + seed, then starts server + demo generator
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: packages/dashboard/Dockerfile
+    container_name: agentgate-dashboard
+    environment:
+      VITE_API_URL: http://localhost:4000
+      VITE_SOCKET_URL: http://localhost:4000
+    ports:
+      - "5173:80"
+    depends_on:
+      - proxy
+
+volumes:
+  pgdata:
