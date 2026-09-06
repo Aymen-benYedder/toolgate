@@ -2,6 +2,7 @@ import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { createServer } from "node:http";
+import { getMockDb } from "./demo/mockDb.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { createRealtime } from "./realtime/socket.js";
 import { auditRouter } from "./routes/audit.js";
@@ -14,6 +15,13 @@ import { statsRouter } from "./routes/stats.js";
 const app = express();
 const httpServer = createServer(app);
 const io = createRealtime(httpServer);
+
+// Warm up the in-memory mock company DB (Northwind Retail) at boot.
+const mockDb = getMockDb();
+console.log(
+  `[agentgate] mock DB ready: ${mockDb.users.length} users, ${mockDb.orders.length} orders, ` +
+    `${mockDb.transactions.length} transactions, ${mockDb.inventory.length} inventory items`,
+);
 
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
