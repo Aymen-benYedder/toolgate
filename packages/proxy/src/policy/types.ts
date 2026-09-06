@@ -4,11 +4,13 @@
  * Engine implementation lands in AG-3 (policy/engine.ts).
  */
 
+export type ComparisonOperator = ">" | "<" | ">=" | "<=" | "==" | "!=";
+
 export type Condition =
   | { always: true }
   | {
       field: string;
-      operator: ">" | "<" | ">=" | "<=" | "==" | "!=";
+      operator: ComparisonOperator;
       value: number | string;
     }
   | { and: Condition[] }

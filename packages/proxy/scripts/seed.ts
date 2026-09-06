@@ -2,14 +2,18 @@ import "dotenv/config";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcryptjs";
 import { prisma } from "../src/db/client.js";
+import defaultPolicies from "../src/policy/defaultPolicies.json" with { type: "json" };
+import { evaluatePolicy } from "../src/policy/engine.js";
+import type { PolicyRule } from "../src/policy/types.js";
 
 /**
  * Seed script (spec §14 milestone 2 + 3):
  * - Admin user (from ADMIN_EMAIL / ADMIN_PASSWORD env)
+ * - Default policies (upserted by name+toolPattern — preserves user edits)
  * - Fake historical ToolCallRequest + AuditLog rows so the dashboard is alive
- *   on first load (spec: "seeds default policies + fake historical audit data";
- *   default policies land in AG-3).
- * Idempotent: clears requests/audit, upserts admin.
+ *   on first load. Each fake request is resolved through the real policy
+ *   engine, so matchedPolicyId/name are always consistent with the rules.
+ * Idempotent: clears requests/audit, upserts admin + policies.
  */
 
 // ── Plausible agent reasoning strings (make the live feed feel real) ───────
@@ -73,16 +77,6 @@ interface FakeRequest {
   createdAt: Date;
   decidedAt?: Date | null;
 }
-
-const POLICY_NAMES: Record<string, string> = {
-  get_user: "Auto-allow read operations",
-  list_orders: "Auto-allow read operations",
-  read_inventory: "Auto-allow read operations",
-  transfer_funds: "Approve large transfers",
-  read_user_pii: "Flag sensitive data access",
-  delete_user_record: "Block destructive DB operations",
-  drop_table: "Block destructive DB operations",
-};
 
 function makeReadRequest(now: number): FakeRequest {
   const tool = faker.helpers.arrayElement(["get_user", "list_orders", "read_inventory"]);
@@ -181,8 +175,7 @@ function generateFakeRequests(count: number): FakeRequest[] {
   return requests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
-function auditEventsFor(req: FakeRequest): { event: string; detail: Record<string, unknown>; createdAt: Date }[] {
-  const policy = POLICY_NAMES[req.toolName] ?? "Default catch-all";
+function auditEventsFor(req: FakeRequest, policyName: string): { event: string; detail: Record<string, unknown>; createdAt: Date }[] {
   const events: { event: string; detail: Record<string, unknown>; createdAt: Date }[] = [
     {
       event: "REQUEST_RECEIVED",
@@ -191,7 +184,7 @@ function auditEventsFor(req: FakeRequest): { event: string; detail: Record<strin
     },
     {
       event: "POLICY_EVALUATED",
-      detail: { matchedPolicy: policy },
+      detail: { matchedPolicy: policyName },
       createdAt: new Date(req.createdAt.getTime() + 5),
     },
   ];
@@ -207,7 +200,7 @@ function auditEventsFor(req: FakeRequest): { event: string; detail: Record<strin
     case "AUTO_BLOCKED":
       events.push({
         event: "BLOCKED",
-        detail: { policy, reason: "Destructive operation blocked by policy" },
+        detail: { policy: policyName, reason: "Destructive operation blocked by policy" },
         createdAt: new Date(req.createdAt.getTime() + 10),
       });
       break;
@@ -240,6 +233,40 @@ function auditEventsFor(req: FakeRequest): { event: string; detail: Record<strin
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
+async function seedDefaultPolicies(): Promise<PolicyRule[]> {
+  const seeds = defaultPolicies as unknown as PolicyRule[];
+  const upserted: PolicyRule[] = [];
+  for (const seed of seeds) {
+    const existing = await prisma.policy.findFirst({
+      where: { name: seed.name, toolPattern: seed.toolPattern },
+    });
+    const row = existing
+      ? await prisma.policy.update({
+          where: { id: existing.id },
+          data: {
+            description: seed.description,
+            condition: seed.condition,
+            action: seed.action,
+            enabled: seed.enabled,
+            priority: seed.priority,
+          },
+        })
+      : await prisma.policy.create({
+          data: {
+            name: seed.name,
+            description: seed.description,
+            toolPattern: seed.toolPattern,
+            condition: seed.condition,
+            action: seed.action,
+            enabled: seed.enabled,
+            priority: seed.priority,
+          },
+        });
+    upserted.push(row);
+  }
+  return upserted;
+}
+
 async function main(): Promise<void> {
   console.log("[seed] connecting to database...");
   await prisma.$connect();
@@ -255,28 +282,40 @@ async function main(): Promise<void> {
   });
   console.log(`[seed] admin user ready: ${email}`);
 
-  // 2. Fake historical requests + audit trail (idempotent — clear first).
+  // 2. Default policies (upsert by name+toolPattern — preserves user edits).
+  const policies = await seedDefaultPolicies();
+  console.log(`[seed] ${policies.length} default policies ready`);
+
+  // 3. Fake historical requests + audit trail (idempotent — clear first).
   await prisma.toolCallRequest.deleteMany();
   await prisma.auditLog.deleteMany();
 
   const fakeRequests = generateFakeRequests(60);
   const created = await prisma.toolCallRequest.createManyAndReturn({
-    data: fakeRequests.map((r) => ({
-      agentName: r.agentName,
-      toolName: r.toolName,
-      toolInput: r.toolInput,
-      status: r.status,
-      reasoning: r.reasoning,
-      result: r.result,
-      createdAt: r.createdAt,
-      decidedAt: r.decidedAt,
-    })),
+    data: fakeRequests.map((r) => {
+      // Resolve the matched policy through the real engine so historical
+      // data is always consistent with the current rules.
+      const decision = evaluatePolicy(policies, r.toolName, r.toolInput);
+      return {
+        agentName: r.agentName,
+        toolName: r.toolName,
+        toolInput: r.toolInput,
+        status: r.status,
+        reasoning: r.reasoning,
+        result: r.result,
+        matchedPolicyId: decision.matchedPolicyId ?? null,
+        createdAt: r.createdAt,
+        decidedAt: r.decidedAt,
+      };
+    }),
   });
 
-  const auditRows = created.flatMap((row) => {
-    const fake = fakeRequests.find((f) => f.createdAt.getTime() === row.createdAt.getTime());
+  // createManyAndReturn preserves insertion order — zip by index.
+  const auditRows = created.flatMap((row, i) => {
+    const fake = fakeRequests[i];
     if (!fake) return [];
-    return auditEventsFor(fake).map((e) => ({
+    const decision = evaluatePolicy(policies, fake.toolName, fake.toolInput);
+    return auditEventsFor(fake, decision.matchedPolicyName ?? "Default catch-all").map((e) => ({
       requestId: row.id,
       event: e.event,
       detail: e.detail,
@@ -292,7 +331,6 @@ async function main(): Promise<void> {
 
   console.log(`[seed] seeded ${created.length} historical requests + ${auditRows.length} audit events`);
   console.log(`[seed] status mix: ${JSON.stringify(statusCounts)}`);
-  console.log("[seed] default policies land in AG-3");
 
   await prisma.$disconnect();
 }

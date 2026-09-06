@@ -1,0 +1,83 @@
+[
+  {
+    "name": "Block destructive DB operations",
+    "description": "Blocks any delete_* tool call before it can touch the database.",
+    "toolPattern": "delete_*",
+    "condition": { "always": true },
+    "action": "BLOCK",
+    "enabled": true,
+    "priority": 1
+  },
+  {
+    "name": "Block destructive DB operations",
+    "description": "Blocks any drop_* tool call before it can touch the database.",
+    "toolPattern": "drop_*",
+    "condition": { "always": true },
+    "action": "BLOCK",
+    "enabled": true,
+    "priority": 1
+  },
+  {
+    "name": "Flag sensitive data access",
+    "description": "Requires human approval before any PII is read.",
+    "toolPattern": "read_user_pii",
+    "condition": { "always": true },
+    "action": "REQUIRE_APPROVAL",
+    "enabled": true,
+    "priority": 1
+  },
+  {
+    "name": "Approve large transfers",
+    "description": "Transfers over $100 require human approval.",
+    "toolPattern": "transfer_funds",
+    "condition": { "field": "amount", "operator": ">", "value": 100 },
+    "action": "REQUIRE_APPROVAL",
+    "enabled": true,
+    "priority": 2
+  },
+  {
+    "name": "Auto-allow small transfers",
+    "description": "Transfers of $100 or less are low-risk and auto-allowed.",
+    "toolPattern": "transfer_funds",
+    "condition": { "field": "amount", "operator": "<=", "value": 100 },
+    "action": "ALLOW",
+    "enabled": true,
+    "priority": 2
+  },
+  {
+    "name": "Auto-allow read operations",
+    "description": "Benign get_* reads are auto-allowed.",
+    "toolPattern": "get_*",
+    "condition": { "always": true },
+    "action": "ALLOW",
+    "enabled": true,
+    "priority": 3
+  },
+  {
+    "name": "Auto-allow read operations",
+    "description": "Benign read_* reads are auto-allowed.",
+    "toolPattern": "read_*",
+    "condition": { "always": true },
+    "action": "ALLOW",
+    "enabled": true,
+    "priority": 3
+  },
+  {
+    "name": "Auto-allow read operations",
+    "description": "Benign list_* reads are auto-allowed.",
+    "toolPattern": "list_*",
+    "condition": { "always": true },
+    "action": "ALLOW",
+    "enabled": true,
+    "priority": 3
+  },
+  {
+    "name": "Default catch-all",
+    "description": "Anything unmatched requires human approval (fail-safe, never fail-open).",
+    "toolPattern": "*",
+    "condition": { "always": true },
+    "action": "REQUIRE_APPROVAL",
+    "enabled": true,
+    "priority": 99
+  }
+]
