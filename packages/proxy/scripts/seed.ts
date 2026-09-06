@@ -76,6 +76,7 @@ interface FakeRequest {
   result?: unknown;
   createdAt: Date;
   decidedAt?: Date | null;
+  decidedBy?: string | null;
 }
 
 function makeReadRequest(now: number): FakeRequest {
@@ -123,6 +124,7 @@ function makeTransferRequest(now: number): FakeRequest {
     result: status === "APPROVED" || status === "AUTO_ALLOWED" ? { ok: true, txnId: `txn_${faker.string.alphanumeric(8)}` } : undefined,
     createdAt,
     decidedAt,
+    decidedBy: status === "APPROVED" || status === "REJECTED" ? "admin" : null,
   };
 }
 
@@ -140,6 +142,7 @@ function makePiiRequest(now: number): FakeRequest {
     result: status === "APPROVED" ? { ok: true, pii: true } : undefined,
     createdAt,
     decidedAt,
+    decidedBy: status === "APPROVED" || status === "REJECTED" ? "admin" : null,
   };
 }
 
@@ -304,6 +307,7 @@ async function main(): Promise<void> {
         reasoning: r.reasoning,
         result: r.result,
         matchedPolicyId: decision.matchedPolicyId ?? null,
+        decidedBy: r.decidedBy ?? null,
         createdAt: r.createdAt,
         decidedAt: r.decidedAt,
       };

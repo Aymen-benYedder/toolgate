@@ -3,7 +3,10 @@ import { Server } from "socket.io";
 
 /**
  * Creates the Socket.IO realtime layer.
- * Event wiring (new_pending_request, request_decided, activity, stats) lands in AG-5.
+ * Event contract (consumed by the dashboard's useSocket hook):
+ *   - "new_pending_request" — full ToolCallRequest row, status PENDING
+ *   - "request_updated"     — full ToolCallRequest row after any status change
+ *     (AUTO_ALLOWED / AUTO_BLOCKED / APPROVED / REJECTED)
  */
 export function createRealtime(httpServer: HttpServer): Server {
   const io = new Server(httpServer, {
@@ -21,4 +24,12 @@ export function createRealtime(httpServer: HttpServer): Server {
   });
 
   return io;
+}
+
+export function emitNewPendingRequest(io: Server, request: unknown): void {
+  io.emit("new_pending_request", request);
+}
+
+export function emitRequestUpdated(io: Server, request: unknown): void {
+  io.emit("request_updated", request);
 }

@@ -3,11 +3,13 @@ import cors from "cors";
 import express from "express";
 import { createServer } from "node:http";
 import { getMockDb } from "./demo/mockDb.js";
+import { setRealtime } from "./mcp/interceptor.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { createRealtime } from "./realtime/socket.js";
 import { auditRouter } from "./routes/audit.js";
 import { authRouter } from "./routes/auth.js";
 import { demoRouter } from "./routes/demo.js";
+import { mcpRouter } from "./routes/mcp.js";
 import { policiesRouter } from "./routes/policies.js";
 import { requestsRouter } from "./routes/requests.js";
 import { statsRouter } from "./routes/stats.js";
@@ -15,6 +17,7 @@ import { statsRouter } from "./routes/stats.js";
 const app = express();
 const httpServer = createServer(app);
 const io = createRealtime(httpServer);
+setRealtime(io);
 
 // Warm up the in-memory mock company DB (Northwind Retail) at boot.
 const mockDb = getMockDb();
@@ -34,6 +37,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.use("/mcp", mcpRouter);
 app.use("/api/requests", requestsRouter);
 app.use("/api/policies", policiesRouter);
 app.use("/api/audit", auditRouter);
@@ -48,7 +52,7 @@ const port = Number(process.env.PORT ?? 4000);
 httpServer.listen(port, () => {
   console.log(`[agentgate] proxy listening on http://localhost:${port}`);
   console.log(`[agentgate] demo mode: ${process.env.DEMO_MODE === "true" ? "ON" : "OFF"}`);
-  console.log(`[agentgate] realtime: socket.io attached (events wired in AG-5)`);
+  console.log(`[agentgate] realtime: socket.io attached (new_pending_request / request_updated)`);
 });
 
 // Keep a reference so AG-5 can wire events without restructuring.
