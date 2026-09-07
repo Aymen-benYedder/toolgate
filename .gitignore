@@ -29,5 +29,6 @@ Thumbs.db
 # Local agent workspace + vault mirrors (not part of the public repo)
 workspace/
 vault/
-# Playwright MCP audit artifacts (screenshots, page snapshots).playwright-mcp/
+# Playwright MCP audit artifacts (screenshots, page snapshots)
+.playwright-mcp/
 *.png
