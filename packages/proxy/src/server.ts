@@ -4,6 +4,7 @@ import express from "express";
 import helmet from "helmet";
 import { createServer } from "node:http";
 import { getMockDb } from "./demo/mockDb.js";
+import { startDemoGenerator } from "./demo/generator.js";
 import { setRealtime } from "./mcp/interceptor.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { createRealtime } from "./realtime/socket.js";
@@ -69,6 +70,9 @@ httpServer.listen(port, () => {
   console.log(`[toolgate] proxy listening on http://localhost:${port}`);
   console.log(`[toolgate] demo mode: ${process.env.DEMO_MODE === "true" ? "ON" : "OFF"}`);
   console.log(`[toolgate] realtime: socket.io attached (new_pending_request / request_updated)`);
+  if (process.env.DEMO_MODE === "true") {
+    startDemoGenerator();
+  }
 });
 
 // Keep a reference so AG-5 can wire events without restructuring.
