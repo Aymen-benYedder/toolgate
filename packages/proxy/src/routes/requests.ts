@@ -82,7 +82,7 @@ requestsRouter.get("/", async (req, res, next) => {
       if (to) where.createdAt.lte = new Date(String(to));
     }
 
-    const [requests, total] = await Promise.all([
+    const [requests, total, policies] = await Promise.all([
       prisma.toolCallRequest.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -90,9 +90,16 @@ requestsRouter.get("/", async (req, res, next) => {
         skip: (page - 1) * pageSize,
       }),
       prisma.toolCallRequest.count({ where }),
+      prisma.policy.findMany({ select: { id: true, name: true } }),
     ]);
 
-    res.json({ requests, total, page, pageSize });
+    const policyNames = new Map(policies.map((p) => [p.id, p.name]));
+    const rows = requests.map((r) => ({
+      ...r,
+      matchedPolicyName: r.matchedPolicyId ? (policyNames.get(r.matchedPolicyId) ?? null) : null,
+    }));
+
+    res.json({ requests: rows, total, page, pageSize });
   } catch (err) {
     next(err);
   }
