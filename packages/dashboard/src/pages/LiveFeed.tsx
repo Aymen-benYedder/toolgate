@@ -21,9 +21,11 @@ function upsert<T extends { id: string }>(list: T[], item: T, cap: number): T[] 
  * LiveFeed — the money shot (spec §10.1).
  * Left: pending approvals (approve/reject). Right: live activity feed.
  * Both update via Socket.IO; stats poll every 5s; toasts on major events.
+ * When the socket drops, a 5s REST polling fallback keeps the feed fresh and
+ * an amber "reconnecting…" banner shows (AG-11).
  */
 export function LiveFeed() {
-  const { onEvent } = useSocket();
+  const { connected, onEvent } = useSocket();
   const [pending, setPending] = useState<ToolCallRequest[]>([]);
   const [activity, setActivity] = useState<ToolCallRequest[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -51,6 +53,32 @@ export function LiveFeed() {
       alive = false;
     };
   }, []);
+
+  // Polling fallback: while the socket is down, re-fetch every 5s so the
+  // feed keeps moving (decisions made elsewhere still show up).
+  useEffect(() => {
+    if (connected) return;
+    let alive = true;
+    const poll = async () => {
+      try {
+        const [p, h] = await Promise.all([
+          endpoints.pending(),
+          endpoints.requests({ pageSize: ACTIVITY_CAP }),
+        ]);
+        if (!alive) return;
+        setPending(p.requests);
+        setActivity(h.requests.filter((r) => r.status !== "PENDING"));
+      } catch {
+        // keep last known state — the banner explains why
+      }
+    };
+    void poll();
+    const t = setInterval(poll, 5000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, [connected]);
 
   // Socket: new pending request → prepend card + toast (once per id).
   useEffect(
@@ -93,6 +121,14 @@ export function LiveFeed() {
   return (
     <div className="min-h-full">
       <DemoModeBanner />
+
+      {!connected && (
+        <div className="border-b border-amber-500/20 bg-amber-500/10 px-4 py-1.5 text-center text-xs text-amber-300">
+          <span className="font-mono font-bold">RECONNECTING…</span>
+          <span className="mx-2 text-amber-500/50">|</span>
+          live socket lost — polling for updates every 5s
+        </div>
+      )}
 
       <div className="mx-auto max-w-6xl px-4 py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

@@ -113,4 +113,14 @@ export const endpoints = {
 
   runScenario: (scenarioId: string) =>
     api.post<ScenarioResult>(`/api/demo/scenario/${scenarioId}`),
+
+  resetDemo: () =>
+    api.post<{
+      ok: boolean;
+      adminEmail: string;
+      policyCount: number;
+      requestCount: number;
+      auditEventCount: number;
+      statusMix: Record<string, number>;
+    }>("/api/demo/reset"),
 };

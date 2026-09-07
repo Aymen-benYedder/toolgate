@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useSocket } from "../hooks/useSocket";
 
@@ -9,11 +10,19 @@ const NAV = [
 
 /**
  * Dashboard shell — sidebar on desktop, top bar on mobile.
- * Connection indicator (green/amber dot) reflects the Socket.IO state;
- * the polling fallback + "reconnecting…" label lands in AG-11.
+ * Connection indicator reflects the Socket.IO state: green "live" when
+ * connected, amber "reconnecting…" after a drop, "connecting…" on first load
+ * (AG-11).
  */
 export function Layout() {
   const { connected } = useSocket();
+  const [hasConnected, setHasConnected] = useState(false);
+
+  useEffect(() => {
+    if (connected) setHasConnected(true);
+  }, [connected]);
+
+  const statusLabel = connected ? "live" : hasConnected ? "reconnecting…" : "connecting…";
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
@@ -51,9 +60,7 @@ export function Layout() {
             className={`h-2 w-2 rounded-full ${connected ? "bg-emerald-400" : "bg-amber-400"}`}
             aria-hidden="true"
           />
-          <span className="font-mono text-xs text-zinc-500">
-            {connected ? "live" : "connecting…"}
-          </span>
+          <span className="font-mono text-xs text-zinc-500">{statusLabel}</span>
         </div>
       </aside>
 

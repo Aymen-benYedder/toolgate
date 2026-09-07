@@ -1,11 +1,12 @@
 import { Router } from "express";
+import { runSeed } from "../demo/seed.js";
 import { runScenario } from "../demo/scenarios.js";
 import { publicMutationLimiter } from "../middleware/rateLimit.js";
 
 /**
  * Demo mode endpoints (spec §9):
  *   POST /api/demo/scenario/:scenarioId — replay a scripted attack scenario
- *   POST /api/demo/reset               — clear + re-seed (lands in AG-11)
+ *   POST /api/demo/reset               — clear + re-seed demo history (AG-11)
  * Rate limiting is in place (spec §12) so the public endpoints can't be abused.
  */
 export const demoRouter = Router();
@@ -28,6 +29,11 @@ demoRouter.post("/scenario/:scenarioId", publicMutationLimiter, async (req, res,
   }
 });
 
-demoRouter.post("/reset", publicMutationLimiter, (_req, res) => {
-  res.status(501).json({ error: "not_implemented", message: "Demo reset lands in AG-11" });
+demoRouter.post("/reset", publicMutationLimiter, async (_req, res, next) => {
+  try {
+    const summary = await runSeed();
+    res.json({ ok: true, ...summary });
+  } catch (err) {
+    next(err);
+  }
 });
