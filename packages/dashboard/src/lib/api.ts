@@ -44,6 +44,8 @@ export const api = {
 
 /** Typed endpoint helpers — one function per backend route. */
 export const endpoints = {
+  health: () => api.get<{ status: string; service: string; demoMode: boolean }>("/health"),
+
   requests: (params?: {
     status?: string;
     agentName?: string;
