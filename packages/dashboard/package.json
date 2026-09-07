@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "AgentGate dashboard — React + Vite + Tailwind. Live feed, audit log, policy editor.",
+  "description": "toolgate dashboard — React + Vite + Tailwind. Live feed, audit log, policy editor.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
