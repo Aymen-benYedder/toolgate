@@ -5,6 +5,7 @@ import helmet from "helmet";
 import { createServer } from "node:http";
 import { getMockDb } from "./demo/mockDb.js";
 import { startDemoGenerator } from "./demo/generator.js";
+import { startDemoResetCron } from "./demo/resetCron.js";
 import { setRealtime } from "./mcp/interceptor.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { createRealtime } from "./realtime/socket.js";
@@ -72,6 +73,7 @@ httpServer.listen(port, () => {
   console.log(`[toolgate] realtime: socket.io attached (new_pending_request / request_updated)`);
   if (process.env.DEMO_MODE === "true") {
     startDemoGenerator();
+    startDemoResetCron();
   }
 });
 
