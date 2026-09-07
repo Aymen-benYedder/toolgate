@@ -1,7 +1,5 @@
 # toolgate — AI Agent Security Firewall for MCP
 
-> **Live Demo:** [toolgate-demo.vercel.app](https://toolgate-demo.vercel.app) — watch a rogue AI agent get caught in real time
-
 ---
 
 ## 🚨 AI agents are writing code and executing database tools without oversight.
