@@ -132,7 +132,7 @@ export async function handleToolCall(ctx: ToolCallContext): Promise<ToolCallOutc
       result: result as Prisma.InputJsonValue,
     });
     await logAudit(request.id, "EXECUTED", { result });
-    if (updated) emitRequestUpdated(io!, updated);
+    if (io && updated) emitRequestUpdated(io, updated);
     return { outcome: "allowed", requestId: request.id, result };
   }
 
@@ -148,7 +148,7 @@ export async function handleToolCall(ctx: ToolCallContext): Promise<ToolCallOutc
       policy: decision.matchedPolicyName ?? null,
       reason: "Blocked by policy",
     });
-    if (updated) emitRequestUpdated(io!, updated);
+    if (io && updated) emitRequestUpdated(io, updated);
     return {
       outcome: "blocked",
       requestId: request.id,
@@ -170,7 +170,7 @@ export async function handleToolCall(ctx: ToolCallContext): Promise<ToolCallOutc
   // 5. REQUIRE_APPROVAL — queue for a human, hold the caller up to 60s.
   await safeUpdate(request.id, { matchedPolicyId: decision.matchedPolicyId ?? null });
   const pendingRow = await prisma.toolCallRequest.findUnique({ where: { id: request.id } });
-  if (pendingRow) emitNewPendingRequest(io!, pendingRow);
+  if (io && pendingRow) emitNewPendingRequest(io, pendingRow);
 
   return new Promise<ToolCallOutcome>((resolve) => {
     const timer = setTimeout(async () => {
@@ -185,7 +185,7 @@ export async function handleToolCall(ctx: ToolCallContext): Promise<ToolCallOutc
         reason: "Approval timeout (60s)",
         expectedWaitMs: APPROVAL_TIMEOUT_MS,
       });
-      if (updated) emitRequestUpdated(io!, updated);
+      if (io && updated) emitRequestUpdated(io, updated);
       resolve({ outcome: "timeout", requestId: request.id, expectedWaitMs: APPROVAL_TIMEOUT_MS });
     }, APPROVAL_TIMEOUT_MS);
 
@@ -254,7 +254,7 @@ export async function approvePendingRequest(
     pending.delete(requestId);
     entry.resolve({ outcome: "approved", requestId, result });
   }
-  if (updated) emitRequestUpdated(io!, updated);
+  if (io && updated) emitRequestUpdated(io, updated);
   return { ok: true, status: "APPROVED" };
 }
 
@@ -294,6 +294,6 @@ export async function rejectPendingRequest(
     pending.delete(requestId);
     entry.resolve({ outcome: "rejected", requestId, reason });
   }
-  if (updated) emitRequestUpdated(io!, updated);
+  if (io && updated) emitRequestUpdated(io, updated);
   return { ok: true, status: "REJECTED" };
 }

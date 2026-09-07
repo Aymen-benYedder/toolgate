@@ -4,6 +4,7 @@ import { useSocket } from "../hooks/useSocket";
 
 const NAV = [
   { to: "/", label: "Live Feed", end: true },
+  { to: "/agent", label: "Live Agent" },
   { to: "/audit", label: "Audit Log" },
   { to: "/policies", label: "Policy Editor" },
 ];

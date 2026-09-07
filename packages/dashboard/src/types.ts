@@ -109,3 +109,30 @@ export interface DecisionResponse {
   status: RequestStatus;
   late: boolean;
 }
+
+/** Live Agent Mode (AG-12) — outcomes of a real LLM run through the pipeline. */
+export type AgentCallStatus = "allowed" | "blocked" | "approved" | "rejected" | "timeout" | "error";
+
+export interface AgentCallOutcome {
+  toolName: string;
+  toolInput: Record<string, unknown>;
+  status: AgentCallStatus;
+  requestId: string;
+  result?: unknown;
+  error?: { code: number; message: string };
+  reason?: string;
+}
+
+export interface LiveAgentResult {
+  instruction: string;
+  message: string | null;
+  calls: AgentCallOutcome[];
+  provider: string;
+  model: string;
+}
+
+export interface AgentStatus {
+  available: boolean;
+  provider: string | null;
+  model: string | null;
+}

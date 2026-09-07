@@ -1,6 +1,8 @@
 import type {
+  AgentStatus,
   AuditResponse,
   DecisionResponse,
+  LiveAgentResult,
   PoliciesResponse,
   Policy,
   RequestsResponse,
@@ -123,4 +125,14 @@ export const endpoints = {
       auditEventCount: number;
       statusMix: Record<string, number>;
     }>("/api/demo/reset"),
+
+  agentStatus: () => api.get<AgentStatus>("/api/agent/status"),
+
+  /** Live Agent run — can take up to ~60s while pending calls await approval. */
+  runAgent: (instruction: string, signal?: AbortSignal) =>
+    request<LiveAgentResult>("/api/agent/run", {
+      method: "POST",
+      body: JSON.stringify({ instruction }),
+      signal,
+    }),
 };

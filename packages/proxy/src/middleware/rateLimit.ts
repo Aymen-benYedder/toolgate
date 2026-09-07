@@ -26,3 +26,15 @@ export const mcpLimiter = rateLimit({
   legacyHeaders: false,
   message: jsonMessage,
 });
+
+/**
+ * Live Agent runs cost real API money per call, so the public endpoint gets
+ * a much tighter budget than the free demo endpoints (AG-12).
+ */
+export const liveAgentLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: jsonMessage,
+});

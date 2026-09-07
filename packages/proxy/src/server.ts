@@ -10,6 +10,7 @@ import { setRealtime } from "./mcp/interceptor.js";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { createRealtime } from "./realtime/socket.js";
 import { auditRouter } from "./routes/audit.js";
+import { agentRouter } from "./routes/agent.js";
 import { authRouter } from "./routes/auth.js";
 import { demoRouter } from "./routes/demo.js";
 import { mcpRouter } from "./routes/mcp.js";
@@ -60,6 +61,7 @@ app.use("/api/requests", requestsRouter);
 app.use("/api/policies", policiesRouter);
 app.use("/api/audit", auditRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/agent", agentRouter);
 app.use("/api/demo", demoRouter);
 app.use("/api/stats", statsRouter);
 

@@ -1,0 +1,17 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]: tg
+      - generic [ref=e7]: toolgate
+    - navigation "Main" [ref=e8]:
+      - link "Live Feed" [ref=e9] [cursor=pointer]:
+        - /url: /
+      - link "Live Agent" [ref=e10] [cursor=pointer]:
+        - /url: /agent
+      - link "Audit Log" [ref=e11] [cursor=pointer]:
+        - /url: /audit
+      - link "Policy Editor" [ref=e12] [cursor=pointer]:
+        - /url: /policies
+    - generic [ref=e13]: connecting…
+  - main [ref=e16]:
+    - generic [ref=e17]: Checking Live Agent Mode…

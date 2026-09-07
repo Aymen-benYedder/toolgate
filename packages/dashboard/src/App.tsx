@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { Layout } from "./components/Layout";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import { AuditLog } from "./pages/AuditLog";
+import { LiveAgent } from "./pages/LiveAgent";
 import { LiveFeed } from "./pages/LiveFeed";
 import { Login } from "./pages/Login";
 import { PolicyEditor } from "./pages/PolicyEditor";
@@ -19,6 +20,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/" element={<LiveFeed />} />
+          <Route path="/agent" element={<LiveAgent />} />
           <Route path="/audit" element={<AuditLog />} />
           <Route
             path="/policies"
