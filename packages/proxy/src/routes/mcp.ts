@@ -2,6 +2,7 @@ import { Router } from "express";
 import { handleToolCall } from "../mcp/interceptor.js";
 import { getTool, listTools } from "../mcp/tools.js";
 import { MCP_ERROR_CODES, type McpRequest, type McpResponse } from "../mcp/types.js";
+import { mcpLimiter } from "../middleware/rateLimit.js";
 
 /**
  * Minimal MCP-compatible endpoint (spec §8): accepts JSON-RPC-shaped
@@ -16,7 +17,7 @@ function error(id: McpRequest["id"] | null, code: number, message: string, data?
   return { jsonrpc: "2.0", id: id ?? null, error: { code, message, data } };
 }
 
-mcpRouter.post("/", async (req, res) => {
+mcpRouter.post("/", mcpLimiter, async (req, res) => {
   const body = req.body as McpRequest | undefined;
 
   if (!body || body.jsonrpc !== "2.0" || typeof body.id === "undefined") {

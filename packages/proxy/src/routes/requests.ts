@@ -2,6 +2,8 @@ import type { Prisma } from "@prisma/client";
 import { Router } from "express";
 import { prisma } from "../db/client.js";
 import { approvePendingRequest, rejectPendingRequest } from "../mcp/interceptor.js";
+import { resolveDecidedBy } from "../middleware/auth.js";
+import { publicMutationLimiter } from "../middleware/rateLimit.js";
 
 /**
  * Tool-call request endpoints (spec §8):
@@ -24,10 +26,16 @@ requestsRouter.get("/pending", async (_req, res, next) => {
   }
 });
 
-requestsRouter.post("/:id/approve", async (req, res, next) => {
+requestsRouter.post("/:id/approve", publicMutationLimiter, async (req, res, next) => {
   try {
-    const decidedBy = (req.body?.decidedBy as string | undefined) ?? "guest-visitor";
-    const result = await approvePendingRequest(req.params.id, decidedBy);
+    const requestId = req.params.id;
+    if (!requestId) {
+      res.status(400).json({ error: "bad_request", message: "Missing request id" });
+      return;
+    }
+    const decidedBy = resolveDecidedBy(req, res);
+    if (decidedBy === null) return;
+    const result = await approvePendingRequest(requestId, decidedBy);
     if (!result.ok) {
       res.status(404).json({ error: "not_found", message: "Request not found" });
       return;
@@ -38,11 +46,17 @@ requestsRouter.post("/:id/approve", async (req, res, next) => {
   }
 });
 
-requestsRouter.post("/:id/reject", async (req, res, next) => {
+requestsRouter.post("/:id/reject", publicMutationLimiter, async (req, res, next) => {
   try {
-    const decidedBy = (req.body?.decidedBy as string | undefined) ?? "guest-visitor";
+    const requestId = req.params.id;
+    if (!requestId) {
+      res.status(400).json({ error: "bad_request", message: "Missing request id" });
+      return;
+    }
+    const decidedBy = resolveDecidedBy(req, res);
+    if (decidedBy === null) return;
     const reason = req.body?.reason as string | undefined;
-    const result = await rejectPendingRequest(req.params.id, decidedBy, reason);
+    const result = await rejectPendingRequest(requestId, decidedBy, reason);
     if (!result.ok) {
       res.status(404).json({ error: "not_found", message: "Request not found" });
       return;

@@ -1,6 +1,7 @@
 import "dotenv/config";
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import { createServer } from "node:http";
 import { getMockDb } from "./demo/mockDb.js";
 import { setRealtime } from "./mcp/interceptor.js";
@@ -14,6 +15,20 @@ import { policiesRouter } from "./routes/policies.js";
 import { requestsRouter } from "./routes/requests.js";
 import { statsRouter } from "./routes/stats.js";
 
+// ── Boot-time security warnings ────────────────────────────────────────────
+// The defaults exist so `npm run dev` works out of the box, but they must be
+// overridden before any public deployment (forgeable JWTs / known admin login).
+if ((process.env.JWT_SECRET ?? "replace-me") === "replace-me") {
+  console.warn(
+    "[agentgate] WARNING: JWT_SECRET is the default 'replace-me'. Set a strong secret before any public deployment.",
+  );
+}
+if ((process.env.ADMIN_PASSWORD ?? "changeme123") === "changeme123") {
+  console.warn(
+    "[agentgate] WARNING: ADMIN_PASSWORD is the default 'changeme123'. Change it before any public deployment.",
+  );
+}
+
 const app = express();
 const httpServer = createServer(app);
 const io = createRealtime(httpServer);
@@ -26,6 +41,7 @@ console.log(
     `${mockDb.transactions.length} transactions, ${mockDb.inventory.length} inventory items`,
 );
 
+app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
