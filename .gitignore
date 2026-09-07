@@ -25,3 +25,7 @@ npm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
+
+# Local agent workspace + vault mirrors (not part of the public repo)
+workspace/
+vault/
