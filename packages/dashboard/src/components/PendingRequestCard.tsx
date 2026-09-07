@@ -53,7 +53,7 @@ export function PendingRequestCard({
         <StatusBadge status="PENDING" />
       </div>
 
-      <pre className="mt-3 max-h-40 overflow-auto rounded-md bg-zinc-950/80 p-3 font-mono text-xs leading-relaxed text-zinc-300">
+      <pre className="mt-3 max-h-40 overflow-auto rounded-md bg-zinc-950/80 p-3 font-mono text-sm leading-relaxed text-zinc-300">
         {prettyJson(request.toolInput)}
       </pre>
 
@@ -68,17 +68,17 @@ export function PendingRequestCard({
           type="button"
           disabled={busy !== null}
           onClick={() => void decide("approve")}
-          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-emerald-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:opacity-50"
+          className="inline-flex flex-1 items-center justify-center rounded-md bg-emerald-500 px-3 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:opacity-50"
         >
-          {busy === "approve" ? "…" : "✓ Approve"}
+          {busy === "approve" ? "…" : "Approve"}
         </button>
         <button
           type="button"
           disabled={busy !== null}
           onClick={() => void decide("reject")}
-          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-red-500/90 px-3 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-50"
+          className="inline-flex flex-1 items-center justify-center rounded-md bg-red-500/90 px-3 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300 disabled:opacity-50"
         >
-          {busy === "reject" ? "…" : "✕ Reject"}
+          {busy === "reject" ? "…" : "Reject"}
         </button>
       </div>
     </div>

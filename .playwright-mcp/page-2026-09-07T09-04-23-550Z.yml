@@ -1,0 +1,18 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e6]: tg
+    - generic [ref=e7]: toolgate
+  - generic [ref=e8]:
+    - heading "Admin Sign In" [level=1] [ref=e9]
+    - paragraph [ref=e10]: Policy editing requires an admin account.
+    - generic [ref=e11]:
+      - generic [ref=e12]:
+        - text: Email
+        - textbox "Email" [ref=e13]:
+          - /placeholder: admin@toolgate.dev
+      - generic [ref=e14]:
+        - text: Password
+        - textbox "Password" [ref=e15]:
+          - /placeholder: ••••••••
+      - button "Sign in" [ref=e16]
+    - paragraph [ref=e17]: "demo: admin@toolgate.dev / changeme123"

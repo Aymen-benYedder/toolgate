@@ -14,16 +14,19 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    setError(null);
     try {
       const res = await endpoints.login(email, password);
       login(res.token, res.email);
       toast.success(`Signed in as ${res.email}`);
       navigate("/policies", { replace: true });
     } catch {
+      setError("Invalid email or password");
       toast.error("Invalid email or password");
     } finally {
       setBusy(false);
@@ -56,7 +59,10 @@ export function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@toolgate.dev"
-                className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                aria-invalid={error ? true : undefined}
+                className={`mt-1 w-full rounded-md border bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
+                  error ? "border-red-500/70" : "border-zinc-700"
+                }`}
               />
             </label>
             <label className="block">
@@ -68,9 +74,21 @@ export function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="mt-1 w-full rounded-md border border-zinc-700 bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
+                aria-invalid={error ? true : undefined}
+                className={`mt-1 w-full rounded-md border bg-zinc-950 px-3 py-2 font-mono text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
+                  error ? "border-red-500/70" : "border-zinc-700"
+                }`}
               />
             </label>
+            {error && (
+              <p
+                role="alert"
+                aria-live="polite"
+                className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+              >
+                {error}
+              </p>
+            )}
             <button
               type="submit"
               disabled={busy}
@@ -80,7 +98,7 @@ export function Login() {
             </button>
           </form>
 
-          <p className="mt-4 rounded-md bg-zinc-950/60 px-3 py-2 font-mono text-xs text-zinc-500">
+          <p className="mt-4 rounded-md bg-zinc-950/60 px-3 py-2 font-mono text-xs text-zinc-400 ring-1 ring-inset ring-zinc-800">
             demo: admin@toolgate.dev / changeme123
           </p>
         </div>

@@ -51,7 +51,7 @@ export function DemoModeBanner() {
         type="button"
         onClick={handleReset}
         disabled={resetting}
-        className="ml-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 font-mono text-xs text-amber-300 transition-colors hover:bg-amber-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+        className="ml-2 rounded bg-zinc-950 px-2 py-0.5 font-mono text-xs text-amber-300 ring-1 ring-inset ring-amber-500/40 transition-colors hover:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {resetting ? "resetting…" : "reset demo data"}
       </button>

@@ -26,13 +26,13 @@ export function ActivityFeed({ items }: { items: ToolCallRequest[] }) {
   return (
     <div
       ref={listRef}
-      className="max-h-[560px] space-y-1.5 overflow-y-auto pr-1"
+      className="max-h-[560px] space-y-2 overflow-y-auto pr-1"
       aria-label="Live activity feed"
     >
       {items.map((r) => (
         <div
           key={r.id}
-          className="flex items-center gap-3 rounded-md border border-zinc-800/60 bg-zinc-900/40 px-3 py-2"
+          className="flex items-center gap-3 rounded-md border border-zinc-800/60 bg-zinc-900/40 px-3 py-2.5"
         >
           <StatusBadge status={r.status} />
           <div className="min-w-0 flex-1">
