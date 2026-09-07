@@ -41,7 +41,7 @@ export type ToolCallOutcome =
     }
   | { outcome: "approved"; requestId: string; result: unknown }
   | { outcome: "rejected"; requestId: string; reason?: string }
-  | { outcome: "timeout"; requestId: string };
+  | { outcome: "timeout"; requestId: string; expectedWaitMs: number };
 
 interface PendingEntry {
   resolve: (outcome: ToolCallOutcome) => void;
@@ -77,6 +77,9 @@ async function loadPolicies(): Promise<PolicyRule[]> {
     priority: r.priority,
   }));
 }
+
+/** Export for the /mcp route's policy-aware tools/list (hardening: friend review). */
+export { loadPolicies };
 
 function executeTool(toolName: string, toolInput: Record<string, unknown>): unknown {
   const tool = getTool(toolName);
@@ -159,6 +162,10 @@ export async function handleToolCall(ctx: ToolCallContext): Promise<ToolCallOutc
         code: MCP_ERROR_CODES.TOOL_BLOCKED,
         message: `Tool call '${toolName}' was blocked by policy '${decision.matchedPolicyName ?? "Default catch-all"}'`,
         data: {
+          code: "blocked_by_policy",
+          retryable: false,
+          actionable:
+            "Tool is permanently blocked by policy. Do not retry. Use an allowed alternative or request a policy change.",
           matchedPolicyId: decision.matchedPolicyId,
           matchedPolicyName: decision.matchedPolicyName,
         },
@@ -184,9 +191,10 @@ export async function handleToolCall(ctx: ToolCallContext): Promise<ToolCallOutc
       await logAudit(request.id, "REJECTED", {
         decidedBy: "system",
         reason: "Approval timeout (60s)",
+        expectedWaitMs: APPROVAL_TIMEOUT_MS,
       });
       emitRequestUpdated(io!, updated);
-      resolve({ outcome: "timeout", requestId: request.id });
+      resolve({ outcome: "timeout", requestId: request.id, expectedWaitMs: APPROVAL_TIMEOUT_MS });
     }, APPROVAL_TIMEOUT_MS);
 
     pending.set(request.id, { resolve, timer });

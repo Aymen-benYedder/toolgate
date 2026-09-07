@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { handleToolCall } from "../mcp/interceptor.js";
+import { handleToolCall, loadPolicies } from "../mcp/interceptor.js";
 import { getTool, listTools } from "../mcp/tools.js";
 import { MCP_ERROR_CODES, type McpRequest, type McpResponse } from "../mcp/types.js";
+import { matchesToolPattern } from "../policy/engine.js";
 import { mcpLimiter } from "../middleware/rateLimit.js";
 
 /**
@@ -10,11 +11,29 @@ import { mcpLimiter } from "../middleware/rateLimit.js";
  *
  * Agent identity + reasoning ride on custom headers so the MCP payload stays
  * spec-clean: `x-agent-name`, `x-agent-reasoning`.
+ *
+ * Hardening (friend review): tools/list is policy-aware — tools matched by an
+ * enabled BLOCK policy with an `always` condition are removed from the agent's
+ * surface so it stops attempting them. Refusals carry actionable codes.
  */
 export const mcpRouter = Router();
 
 function error(id: McpRequest["id"] | null, code: number, message: string, data?: unknown): McpResponse {
   return { jsonrpc: "2.0", id: id ?? null, error: { code, message, data } };
+}
+
+/** Tools an enabled BLOCK policy with an `always` condition removes from the surface. */
+async function blockedToolPatterns(): Promise<string[]> {
+  const policies = await loadPolicies();
+  return policies
+    .filter(
+      (p) =>
+        p.enabled &&
+        p.action === "BLOCK" &&
+        "always" in p.condition &&
+        p.condition.always === true,
+    )
+    .map((p) => p.toolPattern);
 }
 
 mcpRouter.post("/", mcpLimiter, async (req, res) => {
@@ -29,7 +48,11 @@ mcpRouter.post("/", mcpLimiter, async (req, res) => {
 
   try {
     if (method === "tools/list") {
-      res.json({ jsonrpc: "2.0", id, result: { tools: listTools() } });
+      const blocked = await blockedToolPatterns();
+      const tools = listTools().filter(
+        (t) => !blocked.some((pattern) => matchesToolPattern(pattern, t.name)),
+      );
+      res.json({ jsonrpc: "2.0", id, result: { tools } });
       return;
     }
 
@@ -69,11 +92,24 @@ mcpRouter.post("/", mcpLimiter, async (req, res) => {
               id,
               MCP_ERROR_CODES.INVALID_REQUEST,
               `Tool call rejected${outcome.reason ? `: ${outcome.reason}` : ""}`,
+              {
+                code: "rejected_by_human",
+                retryable: false,
+                actionable: "A human rejected this call. Do not retry without new information.",
+                reason: outcome.reason ?? null,
+              },
             ),
           );
           return;
         case "timeout":
-          res.json(error(id, MCP_ERROR_CODES.APPROVAL_TIMEOUT, "Approval timed out after 60s"));
+          res.json(
+            error(id, MCP_ERROR_CODES.APPROVAL_TIMEOUT, "Approval timed out after 60s", {
+              code: "approval_timeout",
+              retryable: false,
+              actionable: "Approval timed out. Re-submit only if the user explicitly asks.",
+              expectedWaitMs: outcome.expectedWaitMs,
+            }),
+          );
           return;
       }
       return;
