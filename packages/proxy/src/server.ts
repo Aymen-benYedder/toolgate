@@ -20,12 +20,12 @@ import { statsRouter } from "./routes/stats.js";
 // overridden before any public deployment (forgeable JWTs / known admin login).
 if ((process.env.JWT_SECRET ?? "replace-me") === "replace-me") {
   console.warn(
-    "[agentgate] WARNING: JWT_SECRET is the default 'replace-me'. Set a strong secret before any public deployment.",
+    "[toolgate] WARNING: JWT_SECRET is the default 'replace-me'. Set a strong secret before any public deployment.",
   );
 }
 if ((process.env.ADMIN_PASSWORD ?? "changeme123") === "changeme123") {
   console.warn(
-    "[agentgate] WARNING: ADMIN_PASSWORD is the default 'changeme123'. Change it before any public deployment.",
+    "[toolgate] WARNING: ADMIN_PASSWORD is the default 'changeme123'. Change it before any public deployment.",
   );
 }
 
@@ -37,7 +37,7 @@ setRealtime(io);
 // Warm up the in-memory mock company DB (Northwind Retail) at boot.
 const mockDb = getMockDb();
 console.log(
-  `[agentgate] mock DB ready: ${mockDb.users.length} users, ${mockDb.orders.length} orders, ` +
+  `[toolgate] mock DB ready: ${mockDb.users.length} users, ${mockDb.orders.length} orders, ` +
     `${mockDb.transactions.length} transactions, ${mockDb.inventory.length} inventory items`,
 );
 
@@ -48,7 +48,7 @@ app.use(express.json({ limit: "1mb" }));
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
-    service: "agentgate-proxy",
+    service: "toolgate-proxy",
     demoMode: process.env.DEMO_MODE === "true",
   });
 });
@@ -66,9 +66,9 @@ app.use(errorHandler);
 
 const port = Number(process.env.PORT ?? 4000);
 httpServer.listen(port, () => {
-  console.log(`[agentgate] proxy listening on http://localhost:${port}`);
-  console.log(`[agentgate] demo mode: ${process.env.DEMO_MODE === "true" ? "ON" : "OFF"}`);
-  console.log(`[agentgate] realtime: socket.io attached (new_pending_request / request_updated)`);
+  console.log(`[toolgate] proxy listening on http://localhost:${port}`);
+  console.log(`[toolgate] demo mode: ${process.env.DEMO_MODE === "true" ? "ON" : "OFF"}`);
+  console.log(`[toolgate] realtime: socket.io attached (new_pending_request / request_updated)`);
 });
 
 // Keep a reference so AG-5 can wire events without restructuring.

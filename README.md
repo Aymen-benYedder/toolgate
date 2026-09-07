@@ -1,22 +1,22 @@
-# AgentGate — AI Agent Security Firewall for MCP
+# toolgate — AI Agent Security Firewall for MCP
 
-> **Live Demo:** [agentgate-demo.vercel.app](https://agentgate-demo.vercel.app) — watch a rogue AI agent get caught in real time
+> **Live Demo:** [toolgate-demo.vercel.app](https://toolgate-demo.vercel.app) — watch a rogue AI agent get caught in real time
 
 ---
 
 ## 🚨 AI agents are writing code and executing database tools without oversight.
 
-**AgentGate solves this with real-time interception and human-in-the-loop security.**
+**toolgate solves this with real-time interception and human-in-the-loop security.**
 
-Every tool call an AI agent makes — reading customer PII, transferring funds, deleting records — passes through AgentGate first. A JSON policy engine decides in milliseconds: **auto-allow** safe calls, **auto-block** dangerous ones, and **pause** anything risky for a human to approve or reject. Every decision lands in an immutable audit trail.
+Every tool call an AI agent makes — reading customer PII, transferring funds, deleting records — passes through toolgate first. A JSON policy engine decides in milliseconds: **auto-allow** safe calls, **auto-block** dangerous ones, and **pause** anything risky for a human to approve or reject. Every decision lands in an immutable audit trail.
 
-AgentGate is a **Model Context Protocol (MCP) security gateway**: a firewall for AI agents that turns "trust the agent" into "verify every action."
+toolgate is a **Model Context Protocol (MCP) security gateway**: a firewall for AI agents that turns "trust the agent" into "verify every action."
 
-<!-- GIF placeholder: high-res demo recording lands at AG-13 (see projects/agentgate/todos.md) -->
+<!-- GIF placeholder: high-res demo recording lands at AG-13 (see projects/toolgate/todos.md) -->
 
 ```
 ┌─────────────────────┐     ┌──────────────────────────────────────────────┐     ┌──────────────────┐
-│  AI Agent           │     │  AgentGate Proxy (Node.js + Express)         │     │  Mock Company DB │
+│  AI Agent           │     │  toolgate Proxy (Node.js + Express)         │     │  Mock Company DB │
 │  (Claude / GPT /    │────►│                                              │────►│  · users         │
 │   any MCP client)   │     │  ┌────────────────────────────────────────┐  │     │  · orders        │
 │  tools/list         │     │  │  Policy Engine (JSON rules, no DSL)    │  │     │  · transactions  │
@@ -37,7 +37,7 @@ AgentGate is a **Model Context Protocol (MCP) security gateway**: a firewall for
 
 ## Why AI agent security matters
 
-LLM-powered agents now hold credentials to databases, payment systems, and internal APIs. A single hallucinated tool call — `delete_user_record`, `transfer_funds`, `drop_table` — can cause damage faster than a human can react. Traditional security stops at the API boundary; **AgentGate adds a governance layer at the tool boundary**, where the agent's actions actually happen.
+LLM-powered agents now hold credentials to databases, payment systems, and internal APIs. A single hallucinated tool call — `delete_user_record`, `transfer_funds`, `drop_table` — can cause damage faster than a human can react. Traditional security stops at the API boundary; **toolgate adds a governance layer at the tool boundary**, where the agent's actions actually happen.
 
 - **Real-time interception** — every MCP `tools/call` is evaluated before execution
 - **Human-in-the-loop approval** — risky calls pause and wait for a human decision (60s hold, then auto-reject)
@@ -123,9 +123,9 @@ The proxy applies Prisma migrations and seeds demo data on boot. The dashboard i
 
 ## FAQ
 
-**What is MCP?** The Model Context Protocol — Anthropic's open standard for connecting AI agents to tools and data. AgentGate intercepts MCP `tools/call` requests.
+**What is MCP?** The Model Context Protocol — Anthropic's open standard for connecting AI agents to tools and data. toolgate intercepts MCP `tools/call` requests.
 
-**Does AgentGate work with any agent?** Yes — anything that speaks MCP can point at AgentGate's `/mcp` endpoint. The demo includes a simulated agent plus an optional real Anthropic-powered agent mode.
+**Does toolgate work with any agent?** Yes — anything that speaks MCP can point at toolgate's `/mcp` endpoint. The demo includes a simulated agent plus an optional real Anthropic-powered agent mode.
 
 **Is the policy engine safe from injection?** Yes. Policies are structured JSON evaluated by a plain TypeScript interpreter — no `eval`, no regex, no code execution.
 

@@ -1,17 +1,17 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: agentgate-postgres
+    container_name: toolgate-postgres
     environment:
-      POSTGRES_USER: agentgate
-      POSTGRES_PASSWORD: agentgate
-      POSTGRES_DB: agentgate
+      POSTGRES_USER: toolgate
+      POSTGRES_PASSWORD: toolgate
+      POSTGRES_DB: toolgate
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U agentgate -d agentgate"]
+      test: ["CMD-SHELL", "pg_isready -U toolgate -d toolgate"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -20,10 +20,10 @@ services:
     build:
       context: .
       dockerfile: packages/proxy/Dockerfile
-    container_name: agentgate-proxy
+    container_name: toolgate-proxy
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://agentgate:agentgate@postgres:5432/agentgate
+      DATABASE_URL: postgresql://toolgate:toolgate@postgres:5432/toolgate
       PORT: 4000
     ports:
       - "4000:4000"
@@ -36,7 +36,7 @@ services:
     build:
       context: .
       dockerfile: packages/dashboard/Dockerfile
-    container_name: agentgate-dashboard
+    container_name: toolgate-dashboard
     environment:
       VITE_API_URL: http://localhost:4000
       VITE_SOCKET_URL: http://localhost:4000

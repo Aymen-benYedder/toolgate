@@ -275,7 +275,7 @@ async function main(): Promise<void> {
   await prisma.$connect();
 
   // 1. Admin user (upsert — keeps password in sync with env).
-  const email = process.env.ADMIN_EMAIL ?? "admin@agentgate.dev";
+  const email = process.env.ADMIN_EMAIL ?? "admin@toolgate.dev";
   const password = process.env.ADMIN_PASSWORD ?? "changeme123";
   const passwordHash = await bcrypt.hash(password, 10);
   await prisma.adminUser.upsert({

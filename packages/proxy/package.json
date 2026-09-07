@@ -1,5 +1,5 @@
 {
-  "name": "@agentgate/proxy",
+  "name": "@toolgate/proxy",
   "version": "0.1.0",
   "private": true,
   "type": "module",

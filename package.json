@@ -1,5 +1,5 @@
 {
-  "name": "agentgate",
+  "name": "toolgate",
   "version": "0.1.0",
   "private": true,
   "description": "AgentGate — A firewall for AI agents. MCP security/governance middleware with a policy engine and human-in-the-loop dashboard.",
@@ -7,10 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n proxy,dashboard -c blue,green \"npm run dev -w @agentgate/proxy\" \"npm run dev -w @agentgate/dashboard\"",
-    "build": "npm run build -w @agentgate/proxy && npm run build -w @agentgate/dashboard",
-    "typecheck": "npm run typecheck -w @agentgate/proxy && npm run typecheck -w @agentgate/dashboard",
-    "seed": "npm run seed -w @agentgate/proxy"
+    "dev": "concurrently -n proxy,dashboard -c blue,green \"npm run dev -w @toolgate/proxy\" \"npm run dev -w @toolgate/dashboard\"",
+    "build": "npm run build -w @toolgate/proxy && npm run build -w @toolgate/dashboard",
+    "typecheck": "npm run typecheck -w @toolgate/proxy && npm run typecheck -w @toolgate/dashboard",
+    "seed": "npm run seed -w @toolgate/proxy"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

@@ -1,8 +1,8 @@
-# AgentGate — Full Build Specification
+# toolgate — Full Build Specification
 
 **Purpose of this document:** This is a complete, unambiguous implementation spec for a coding agent (e.g. Claude Code) to build end-to-end without asking clarifying questions. Every ambiguous decision has been pre-made below. If the agent encounters a gap not covered here, it should choose the simplest option consistent with the stated goals and continue — not stop to ask.
 
-**Project name:** AgentGate — "A firewall for AI agents." (Agent may rename in code comments as `agentgate` for package/repo names.)
+**Project name:** toolgate — "A firewall for AI agents." (Package/repo names use `toolgate`.)
 
 ---
 
@@ -17,7 +17,7 @@
 
 ## 2. What We're Building — One-Paragraph Summary
 
-AgentGate is a security/governance middleware for AI agents that use the Model Context Protocol (MCP). It sits between an AI agent and the tools/databases it wants to call. Every tool call is intercepted, evaluated against a configurable policy engine (JSON-based rules — no custom DSL/parser), and either auto-allowed, auto-blocked, or paused and routed to a human-in-the-loop dashboard for Approve/Reject. Every decision and its full context is written to an audit log. The system ships with a demo mode that simulates a realistic AI agent generating a continuous stream of tool calls against a fake company database, so the product is always "alive" and testable without any setup.
+toolgate is a security/governance middleware for AI agents that use the Model Context Protocol (MCP). It sits between an AI agent and the tools/databases it wants to call. Every tool call is intercepted, evaluated against a configurable policy engine (JSON-based rules — no custom DSL/parser), and either auto-allowed, auto-blocked, or paused and routed to a human-in-the-loop dashboard for Approve/Reject. Every decision and its full context is written to an audit log. The system ships with a demo mode that simulates a realistic AI agent generating a continuous stream of tool calls against a fake company database, so the product is always "alive" and testable without any setup.
 
 ---
 
@@ -32,7 +32,7 @@ AgentGate is a security/governance middleware for AI agents that use the Model C
                                          │ MCP tool-call request
                                          ▼
                          ┌─────────────────────────────┐
-                         │      AgentGate Proxy         │
+                         │      toolgate Proxy         │
                          │   (Node.js / TypeScript)     │
                          │  - Intercepts tool calls     │
                          │  - Runs Policy Engine        │
@@ -88,7 +88,7 @@ All decisions (allow/block/pending/approved/rejected) are logged to `audit_log` 
 ## 5. Repository Structure
 
 ```
-agentgate/
+toolgate/
 ├── docker-compose.yml
 ├── .env.example
 ├── README.md
@@ -327,11 +327,11 @@ A `POST /api/demo/reset` endpoint (called automatically every ~30 minutes by a c
 `.env.example` (root):
 ```
 # Backend
-DATABASE_URL="postgresql://user:pass@localhost:5432/agentgate"
+DATABASE_URL="postgresql://user:pass@localhost:5432/toolgate"
 # For pure local/dev without Postgres, set DATABASE_URL="file:./dev.db" and use SQLite provider in prisma schema
 JWT_SECRET="replace-me"
 DEMO_MODE=true
-ADMIN_EMAIL="admin@agentgate.dev"
+ADMIN_EMAIL="admin@toolgate.dev"
 ADMIN_PASSWORD="changeme123"
 PORT=4000
 
