@@ -124,37 +124,31 @@ export async function handleToolCall(ctx: ToolCallContext): Promise<ToolCallOutc
   // 3. ALLOW — execute immediately.
   if (decision.action === "ALLOW") {
     const result = executeTool(toolName, toolInput);
-    const updated = await prisma.toolCallRequest.update({
-      where: { id: request.id },
-      data: {
-        status: "AUTO_ALLOWED",
-        matchedPolicyId: decision.matchedPolicyId ?? null,
-        decidedBy: "system",
-        decidedAt: new Date(),
-        result: result as Prisma.InputJsonValue,
-      },
+    const updated = await safeUpdate(request.id, {
+      status: "AUTO_ALLOWED",
+      matchedPolicyId: decision.matchedPolicyId ?? null,
+      decidedBy: "system",
+      decidedAt: new Date(),
+      result: result as Prisma.InputJsonValue,
     });
     await logAudit(request.id, "EXECUTED", { result });
-    emitRequestUpdated(io!, updated);
+    if (updated) emitRequestUpdated(io!, updated);
     return { outcome: "allowed", requestId: request.id, result };
   }
 
   // 4. BLOCK — refuse and explain which policy caused it.
   if (decision.action === "BLOCK") {
-    const updated = await prisma.toolCallRequest.update({
-      where: { id: request.id },
-      data: {
-        status: "AUTO_BLOCKED",
-        matchedPolicyId: decision.matchedPolicyId ?? null,
-        decidedBy: "system",
-        decidedAt: new Date(),
-      },
+    const updated = await safeUpdate(request.id, {
+      status: "AUTO_BLOCKED",
+      matchedPolicyId: decision.matchedPolicyId ?? null,
+      decidedBy: "system",
+      decidedAt: new Date(),
     });
     await logAudit(request.id, "BLOCKED", {
       policy: decision.matchedPolicyName ?? null,
       reason: "Blocked by policy",
     });
-    emitRequestUpdated(io!, updated);
+    if (updated) emitRequestUpdated(io!, updated);
     return {
       outcome: "blocked",
       requestId: request.id,
@@ -174,31 +168,52 @@ export async function handleToolCall(ctx: ToolCallContext): Promise<ToolCallOutc
   }
 
   // 5. REQUIRE_APPROVAL — queue for a human, hold the caller up to 60s.
-  await prisma.toolCallRequest.update({
-    where: { id: request.id },
-    data: { matchedPolicyId: decision.matchedPolicyId ?? null },
-  });
-  const pendingRow = await prisma.toolCallRequest.findUniqueOrThrow({ where: { id: request.id } });
-  emitNewPendingRequest(io!, pendingRow);
+  await safeUpdate(request.id, { matchedPolicyId: decision.matchedPolicyId ?? null });
+  const pendingRow = await prisma.toolCallRequest.findUnique({ where: { id: request.id } });
+  if (pendingRow) emitNewPendingRequest(io!, pendingRow);
 
   return new Promise<ToolCallOutcome>((resolve) => {
     const timer = setTimeout(async () => {
       pending.delete(request.id);
-      const updated = await prisma.toolCallRequest.update({
-        where: { id: request.id },
-        data: { status: "REJECTED", decidedBy: "system", decidedAt: new Date() },
+      const updated = await safeUpdate(request.id, {
+        status: "REJECTED",
+        decidedBy: "system",
+        decidedAt: new Date(),
       });
       await logAudit(request.id, "REJECTED", {
         decidedBy: "system",
         reason: "Approval timeout (60s)",
         expectedWaitMs: APPROVAL_TIMEOUT_MS,
       });
-      emitRequestUpdated(io!, updated);
+      if (updated) emitRequestUpdated(io!, updated);
       resolve({ outcome: "timeout", requestId: request.id, expectedWaitMs: APPROVAL_TIMEOUT_MS });
     }, APPROVAL_TIMEOUT_MS);
 
     pending.set(request.id, { resolve, timer });
   });
+}
+
+/**
+ * Update a request row, tolerating the row having been deleted underneath us
+ * (e.g. a concurrent `npm run seed` wipes requests). A missing row must never
+ * crash the proxy — the in-memory outcome still resolves for the caller.
+ */
+type ToolCallRequestUpdateData = Parameters<typeof prisma.toolCallRequest.update>[0]["data"];
+type ToolCallRequestRow = Awaited<ReturnType<typeof prisma.toolCallRequest.update>>;
+
+async function safeUpdate(
+  id: string,
+  data: ToolCallRequestUpdateData,
+): Promise<ToolCallRequestRow | null> {
+  try {
+    return await prisma.toolCallRequest.update({ where: { id }, data });
+  } catch (err) {
+    if ((err as { code?: string }).code === "P2025") {
+      console.warn(`[interceptor] request ${id} no longer exists (concurrent seed/cleanup?) — continuing`);
+      return null;
+    }
+    throw err;
+  }
 }
 
 /**
@@ -225,14 +240,11 @@ export async function approvePendingRequest(
   }
 
   const result = executeTool(request.toolName, request.toolInput as Record<string, unknown>);
-  const updated = await prisma.toolCallRequest.update({
-    where: { id: requestId },
-    data: {
-      status: "APPROVED",
-      decidedBy,
-      decidedAt: new Date(),
-      result: result as Prisma.InputJsonValue,
-    },
+  const updated = await safeUpdate(requestId, {
+    status: "APPROVED",
+    decidedBy,
+    decidedAt: new Date(),
+    result: result as Prisma.InputJsonValue,
   });
   await logAudit(requestId, "APPROVED", { decidedBy });
   await logAudit(requestId, "EXECUTED", { result });
@@ -242,7 +254,7 @@ export async function approvePendingRequest(
     pending.delete(requestId);
     entry.resolve({ outcome: "approved", requestId, result });
   }
-  emitRequestUpdated(io!, updated);
+  if (updated) emitRequestUpdated(io!, updated);
   return { ok: true, status: "APPROVED" };
 }
 
@@ -270,9 +282,10 @@ export async function rejectPendingRequest(
     return { ok: true, status: request.status, late: true };
   }
 
-  const updated = await prisma.toolCallRequest.update({
-    where: { id: requestId },
-    data: { status: "REJECTED", decidedBy, decidedAt: new Date() },
+  const updated = await safeUpdate(requestId, {
+    status: "REJECTED",
+    decidedBy,
+    decidedAt: new Date(),
   });
   await logAudit(requestId, "REJECTED", { decidedBy, reason: reason ?? null });
 
@@ -281,6 +294,6 @@ export async function rejectPendingRequest(
     pending.delete(requestId);
     entry.resolve({ outcome: "rejected", requestId, reason });
   }
-  emitRequestUpdated(io!, updated);
+  if (updated) emitRequestUpdated(io!, updated);
   return { ok: true, status: "REJECTED" };
 }
