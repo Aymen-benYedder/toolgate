@@ -2,7 +2,8 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../db/client.js";
 import { requireAuth } from "../middleware/auth.js";
-import type { Condition } from "../policy/types.js";
+import { evaluatePolicy } from "../policy/engine.js";
+import type { Condition, PolicyRule } from "../policy/types.js";
 
 /**
  * Policy CRUD endpoints (spec §8). Reads are public; mutations require a
@@ -33,6 +34,63 @@ const policyInputSchema = z.object({
 });
 
 export const policiesRouter = Router();
+
+/**
+ * Live "Test this policy" tool (spec §10.3): run a sample tool call through
+ * the engine against the current policy set, optionally with a draft policy
+ * prepended to see what would match. Read-only — no side effects.
+ */
+policiesRouter.post("/test", async (req, res, next) => {
+  try {
+    const parsed = z
+      .object({
+        toolName: z.string().min(1).max(200),
+        toolInput: z.record(z.unknown()).default({}),
+        draftPolicy: policyInputSchema.optional(),
+      })
+      .safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "invalid_test", message: parsed.error.issues[0]?.message ?? "Invalid test" });
+      return;
+    }
+
+    const { toolName, toolInput, draftPolicy } = parsed.data;
+    const stored = await prisma.policy.findMany({
+      orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
+    });
+
+    const rules: PolicyRule[] = stored.map((p) => ({
+      id: p.id,
+      name: p.name,
+      toolPattern: p.toolPattern,
+      condition: p.condition as Condition,
+      action: p.action as PolicyRule["action"],
+      enabled: p.enabled,
+      priority: p.priority,
+    }));
+
+    if (draftPolicy) {
+      rules.unshift({
+        id: "draft",
+        name: draftPolicy.name,
+        toolPattern: draftPolicy.toolPattern,
+        condition: draftPolicy.condition,
+        action: draftPolicy.action,
+        enabled: draftPolicy.enabled ?? true,
+        priority: draftPolicy.priority ?? 0,
+      });
+    }
+
+    const decision = evaluatePolicy(rules, toolName, toolInput);
+    res.json({
+      decision,
+      draftIncluded: Boolean(draftPolicy),
+      evaluatedCount: rules.filter((r) => r.enabled).length,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 policiesRouter.get("/", async (_req, res, next) => {
   try {

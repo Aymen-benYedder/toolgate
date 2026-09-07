@@ -2,12 +2,23 @@ import type {
   AuditResponse,
   DecisionResponse,
   PoliciesResponse,
+  Policy,
   RequestsResponse,
   ScenarioResult,
   Stats,
 } from "../types";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "";
+const TOKEN_KEY = "toolgate_token";
+
+export function getToken(): string | null {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setToken(token: string | null): void {
+  if (token) localStorage.setItem(TOKEN_KEY, token);
+  else localStorage.removeItem(TOKEN_KEY);
+}
 
 export class ApiError extends Error {
   constructor(
@@ -20,8 +31,12 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = getToken();
   const res = await fetch(`${API_URL}${path}`, {
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
     ...options,
   });
 
@@ -80,6 +95,21 @@ export const endpoints = {
   stats: () => api.get<Stats>("/api/stats"),
 
   policies: () => api.get<PoliciesResponse>("/api/policies"),
+
+  createPolicy: (body: unknown) => api.post<{ policy: Policy }>("/api/policies", body),
+  updatePolicy: (id: string, body: unknown) =>
+    api.patch<{ policy: Policy }>(`/api/policies/${id}`, body),
+  deletePolicy: (id: string) => api.del<{ ok: boolean }>(`/api/policies/${id}`),
+
+  testPolicy: (body: { toolName: string; toolInput: Record<string, unknown>; draftPolicy?: unknown }) =>
+    api.post<{
+      decision: { action: string; matchedPolicyId?: string | null; matchedPolicyName?: string | null };
+      draftIncluded: boolean;
+      evaluatedCount: number;
+    }>("/api/policies/test", body),
+
+  login: (email: string, password: string) =>
+    api.post<{ token: string; email: string }>("/api/auth/login", { email, password }),
 
   runScenario: (scenarioId: string) =>
     api.post<ScenarioResult>(`/api/demo/scenario/${scenarioId}`),
